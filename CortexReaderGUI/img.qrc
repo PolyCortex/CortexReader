@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="img">
+    <file>logo_plein.png</file>
+  </qresource>
+</RCC>
