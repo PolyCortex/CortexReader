@@ -1,0 +1,1 @@
+#Data type that describes what a single gpio input element looks like

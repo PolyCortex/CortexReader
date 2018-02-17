@@ -1,0 +1,1 @@
+#Basically the guiEmitter takes inputs from the previous pipeline stage and transmits it to the CortexReaderGui
