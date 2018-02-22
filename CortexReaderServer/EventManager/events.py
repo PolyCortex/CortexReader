@@ -8,16 +8,16 @@ class UpdateTypes(Enum):
 @unique
 class EventTypes(Enum):
     ARRAY_IS_READY = 0
-    TIME_EVENT = 1 
-#ETCETERA
+    TIMER_EVENT = 1 
+
 
 class Event(abc.ABC):
     @abc.abstractmethod
     def reset(self):
         pass
     @abc.abstractmethod
-    def emit(self, *params):
+    def notify(self, *params):
         pass
-    def __init__(self, event_type, updateType ):
-        self._type = EventTypes(even_type)
-        self._updateType = updateType
+    def __init__(self, eventType, updateType ):
+        self._type = EventTypes(eventType)
+        self._updateType = UpdateTypes(updateType)
