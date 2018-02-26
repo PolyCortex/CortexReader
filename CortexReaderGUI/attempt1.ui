@@ -121,16 +121,27 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout">
       <item>
-       <widget class="QGraphicsView" name="tsgraph_el1"/>
+       <widget class="PlotWidget" name="tsgraph_el1">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+        <property name="frameShadow">
+         <enum>QFrame::Sunken</enum>
+        </property>
+       </widget>
       </item>
       <item>
-       <widget class="QGraphicsView" name="tsgraph_el2"/>
+       <widget class="PlotWidget" name="tsgraph_el2">
+        <property name="frameShape">
+         <enum>QFrame::StyledPanel</enum>
+        </property>
+       </widget>
       </item>
       <item>
-       <widget class="QGraphicsView" name="tsgraph_el3"/>
+       <widget class="PlotWidget" name="tsgraph_el3"/>
       </item>
       <item>
-       <widget class="QGraphicsView" name="tsgraph_el4"/>
+       <widget class="PlotWidget" name="tsgraph_el4"/>
       </item>
      </layout>
     </widget>
@@ -158,16 +169,16 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
-       <widget class="QGraphicsView" name="fsgraph_el1"/>
+       <widget class="PlotWidget" name="fsgraph_el1"/>
       </item>
       <item>
-       <widget class="QGraphicsView" name="fsgraph_el2"/>
+       <widget class="PlotWidget" name="fsgraph_el2"/>
       </item>
       <item>
-       <widget class="QGraphicsView" name="fsgraph_el3"/>
+       <widget class="PlotWidget" name="fsgraph_el3"/>
       </item>
       <item>
-       <widget class="QGraphicsView" name="fsgraph_el4"/>
+       <widget class="PlotWidget" name="fsgraph_el4"/>
       </item>
      </layout>
     </widget>
@@ -658,13 +669,19 @@
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PlotWidget</class>
+   <extends>QGraphicsView</extends>
+   <header>pyqtgraph</header>
+  </customwidget>
+ </customwidgets>
  <tabstops>
   <tabstop>btn_startstop</tabstop>
   <tabstop>btn_browse</tabstop>
   <tabstop>ed_saveloc</tabstop>
   <tabstop>tsgraph_el1</tabstop>
   <tabstop>tsgraph_el2</tabstop>
-  <tabstop>tsgraph_el3</tabstop>
   <tabstop>tsgraph_el4</tabstop>
   <tabstop>fsgraph_el1</tabstop>
   <tabstop>fsgraph_el2</tabstop>
