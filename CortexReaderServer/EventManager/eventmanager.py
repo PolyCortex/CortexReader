@@ -1,27 +1,54 @@
-from events import Event, EventTypes, UpdateTypes
+from .events import EventTypes, UpdateTypes
+from Utilities.singleton import Singleton
+from threading import Lock
 
-class EventManager:
-    def updateManagedEvents(self, indice):
-        self.updateEvent[self._events[indice].update()]()
+class EventManager(metaclass=Singleton):
+    #ATTENTION POURRAIT CAUSER DATA RACE
+    def updateManagedEvents(self, event):
+        self.updateEvent[event._updateType](event)
+    #ATTENTION POURRAIT CAUSER DATA RACE
+    def reset_event(self, event):
+        self._specific_events[event].reset()
+    #ATTENTION POURRAIT CAUSER DATA RACE
+    def remove_event(self, event):
+        if event in self._specific_events:
+            self._specific_events.pop(event)
+         
+    def emit_specific(self, event, *params):
+        self._mutex.acquire()
+        for callBack in self._specific_events[event]:
+            callBack(*params)
+        self._mutex.release()
+        self.emit_type(event._type, *params)
+        self.updateManagedEvents(event)
 
-    def reset_event(self, indice):
-       self._events[indice].reset()
+    def emit_type(self, eventType, *params):
+        self._mutex.acquire()
+        for _eventType, callBacks in self._types_of_events.items():
+            if _eventType == eventType:
+                for callBack in callBacks:                
+                    callBack(*params)
+        self._mutex.release()
+     
+    def register_to_specific_event(self, event, callBack):
+        self._mutex.acquire()
+        if event not in self._specific_events:
+            self._specific_events[event] = []
+        self._specific_events[event].append(callBack)
+        self._mutex.release()
 
-    def remove_event(self, indice):
-         self._events.remove(indice)
-
-    def notify(self, event, *params):
-        indices = [i for i, x in enumerate(self._events) if x == event]
-        for i in indices:
-            self._events[i].emit(*params)
-            self.updateManagedEvents(i)
-
-    def register_event(self, event):
-        self._events.append(event)
+    def register_to_a_type_of_event(self,eventType, callBack):
+        self._mutex.acquire()
+        if eventType not in self._types_of_events:
+             self._types_of_events[eventType] = []
+        self._types_of_events[eventType].append(callBack)
+        self._mutex.release()
 
     def __init__(self):
-        self._events = []
+        self._mutex = Lock()
+        self._specific_events = {}
+        self._types_of_events = {}
         self.updateEvent = {
-            UpdateTypes.RESET : self.reset,
-            UpdateTypes.REMOVE : self.remove
+            UpdateTypes.RESET : self.reset_event,
+            UpdateTypes.REMOVE : self.remove_event
         }

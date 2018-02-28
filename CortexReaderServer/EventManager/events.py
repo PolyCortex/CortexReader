@@ -1,23 +1,24 @@
 import abc
 from enum import Enum, unique
-
 @unique 
 class UpdateTypes(Enum):
     RESET = 0
     REMOVE = 1
+    
 @unique
 class EventTypes(Enum):
-    ARRAY_IS_READY = 0
-    TIME_EVENT = 1 
-#ETCETERA
+    ARRAY_READY =0
 
+from .eventmanager import EventManager
 class Event(abc.ABC):
-    @abc.abstractmethod
+
     def reset(self):
-        pass
+        print('please implement if I ever were to be triggered which I don\'t think should happen for now')
     @abc.abstractmethod
-    def emit(self, *params):
+    def notify(self, *params):
         pass
-    def __init__(self, event_type, updateType ):
-        self._type = EventTypes(even_type)
-        self._updateType = updateType
+    def __init__(self, eventType=None, updateType=None):        
+        self._type = EventTypes(eventType)
+        if updateType is not None:
+            self._updateType = UpdateTypes(updateType)
+        self._eventManager = EventManager()
