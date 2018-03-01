@@ -11,8 +11,13 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         super(App, self).__init__(parent)
         self.setupUi(self)
 
+        # Initialize variable
+        self.savepath = ""
+        self.has_savepath = False
+
         # Associate callbacks
         self.btn_startstop.clicked.connect(self.startstop)
+        self.btn_browse.clicked.connect(self.browse)
 
         # Initialize graphs
         self.timers = []
@@ -51,6 +56,11 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             self.btn_startstop.setText("START")
             # Stop acquisition
             self.timers.stop()
+
+    def browse(self):
+        self.savepath = str(QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory"))
+        self.has_savepath = True
+        self.ed_saveloc.setText(self.savepath)
 
     def test_testplot(self):
             self.timers = QtCore.QTimer()
