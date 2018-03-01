@@ -7,11 +7,13 @@ class UpdateTypes(Enum):
     
 @unique
 class EventTypes(Enum):
-    ARRAY_READY =0
+    PIPELINE_RECORD_PREPROCESS_ARRAY_READY = 0
+    PIPELINE_PREPROCESS_GUI_ARRAY_READY = 1
+    #GPIO_EVENT = 1
+
 
 from .eventmanager import EventManager
 class Event(abc.ABC):
-
     def reset(self):
         print('please implement if I ever were to be triggered which I don\'t think should happen for now')
     @abc.abstractmethod
