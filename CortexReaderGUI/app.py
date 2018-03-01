@@ -4,6 +4,8 @@ import gui
 import numpy as np
 import pyqtgraph as pg
 import time
+import threading
+
 
 class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     def __init__(self, parent=None):
@@ -59,9 +61,10 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def browse(self):
         self.savepath = str(QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory"))
-        self.has_savepath = True
+        self.has_save1path = True
         self.ed_saveloc.setText(self.savepath)
-
+        self.ed_saveloc.
+1
     def test_testplot(self):
             self.timers = QtCore.QTimer()
             self.timers.timeout.connect(self.test_updatedata)
