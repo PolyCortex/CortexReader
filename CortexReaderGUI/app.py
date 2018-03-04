@@ -8,6 +8,7 @@ import threading
 
 
 class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
+    # This function is performed everytime the application is launched. It initializes the GUI and all of its parameters
     def __init__(self, parent=None):
         # Initialize
         super(App, self).__init__(parent)
@@ -16,6 +17,10 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         # Initialize variable
         self.savepath = ""
         self.has_savepath = False
+        self.xdata = [[], [], [], []]
+        self.ydata = [[], [], [], []]
+        self.fxdata = [[], [], [], []]
+        self.fydata = [[], [], [], []]
 
         # Associate callbacks
         self.btn_startstop.clicked.connect(self.startstop)
@@ -59,23 +64,27 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             # Stop acquisition
             self.timers.stop()
 
+    # Callback function of the "Browse" button, which is used to ask the user where to save data after acquisition.
     def browse(self):
         self.savepath = str(QtWidgets.QFileDialog.getExistingDirectory(self, "Select Directory"))
-        self.has_save1path = True
+        self.has_savepath = True
         self.ed_saveloc.setText(self.savepath)
-        self.ed_saveloc.
-1
+
+    """
+    # _TEST FUNCTION_
     def test_testplot(self):
             self.timers = QtCore.QTimer()
             self.timers.timeout.connect(self.test_updatedata)
             self.timers.start(50)
 
+    # _TEST FUNCTION_
     def test_updatedata(self):
         for i in range(len(self.curve)):
             x = range(60)
             y = np.random.random(len(x))
             self.updateplot(i, x, y)
-
+    
+    # Function which updates plot with the data contained in xdata (x-axis) and ydata (y-axis)
     def updateplot(self, pltnumber, xdata, ydata):
         # Function to update the plot pltnumber in the gui using with xdata and ydata, both arrays
         # pltnumber = 0 to 7 (0 = first left, 7 = last right in the layout)
@@ -86,6 +95,54 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
         # Plot data
         self.curve[pltnumber].setData(xdata, ydata)
+    """
+
+    # CUSTOM CLASSES #############
+    class PlotThread(threading.Thread):
+        def __init__(self, ghandle, name, plotid):
+            threading.Thread.__init__(self)
+            self.id = plotid
+            self.name = name
+            self.errorCount = 0
+            self.ghandle = ghandle
+
+        def run(self):
+            try:
+                # TODO: get range parameters and adjust graphs according to those
+                self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
+                self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
+                pass
+            finally:
+                self.errorCount += 1
+                if self.errorCount > 10:
+                    self.exit()
+
+    class AcquireThread(threading.Thread):
+        def __init__(self, ghandle, name, plotid, testflag=True):
+            threading.Thread.__init__(self)
+            self.id = plotid
+            self.name = name
+            self.errorCount = 0
+            self.ghandle = ghandle
+            self.testflag = testflag
+            # TODO: Initialize communication with server
+
+        def run(self):
+            try:
+                if self.testflag:
+                    self.ghandle.xdata[self.id] = range(60)
+                    self.ghandle.ydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
+                    self.ghandle.fxdata[self.id] = range(60)
+                    self.ghandle.fydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
+                else:
+                    pass
+                    # TODO: get data from server and place in arrays
+                time.sleep(0.001)  # TODO: Change 0.001 to the acquisition frequency?
+            finally:
+                self.errorCount += 1
+                if self.errorCount > 10:
+                    self.exit()
+
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
