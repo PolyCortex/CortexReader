@@ -347,3 +347,4 @@ class Ui_MainWindow(object):
         self.group_tab.setTabText(self.group_tab.indexOf(self.tab_info), _translate("MainWindow", "Acquisition Information"))
 
 from pyqtgraph import PlotWidget
+
