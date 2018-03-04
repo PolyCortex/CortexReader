@@ -5,6 +5,7 @@ import numpy as np
 import pyqtgraph as pg
 import time
 import threading
+import multiprocessing as mp
 
 
 class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
@@ -21,6 +22,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.ydata = [[], [], [], []]
         self.fxdata = [[], [], [], []]
         self.fydata = [[], [], [], []]
+        self.threads = []
 
         # Associate callbacks
         self.btn_startstop.clicked.connect(self.startstop)
@@ -58,11 +60,26 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         if self.btn_startstop.text() == "START":
             self.btn_startstop.setText("STOP")
             # Start acquisition
-            self.test_testplot()
+            if self.group_el1.isChecked():
+                self.threads.append(self.PlotThread(self, 'pl_el1', 0))
+                self.threads.append(self.AcquireThread(self, 'ac_el1', 0))
+            if self.group_el2.isChecked():
+                self.threads.append(self.PlotThread(self, 'pl_el2', 1))
+                self.threads.append(self.AcquireThread(self, 'ac_el2', 1))
+            if self.group_el3.isChecked():
+                self.threads.append(self.PlotThread(self, 'pl_el3', 2))
+                self.threads.append(self.AcquireThread(self, 'ac_el3', 2))
+            if self.group_el4.isChecked():
+                self.threads.append(self.PlotThread(self, 'pl_el4', 3))
+                self.threads.append(self.AcquireThread(self, 'ac_el4', 3))
+            for t in self.threads:
+                t.start()
+
         elif self.btn_startstop.text() == "STOP":
             self.btn_startstop.setText("START")
             # Stop acquisition
-            self.timers.stop()
+            for t in self.threads:
+                pass
 
     # Callback function of the "Browse" button, which is used to ask the user where to save data after acquisition.
     def browse(self):
@@ -98,28 +115,28 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     """
 
     # CUSTOM CLASSES #############
-    class PlotThread(threading.Thread):
+    class PlotThread(mp.Process):
         def __init__(self, ghandle, name, plotid):
-            threading.Thread.__init__(self)
+            mp.Process.__init__(self)
             self.id = plotid
             self.name = name
             self.errorCount = 0
             self.ghandle = ghandle
 
         def run(self):
-            try:
-                # TODO: get range parameters and adjust graphs according to those
-                self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
-                self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
-                pass
-            finally:
-                self.errorCount += 1
-                if self.errorCount > 10:
-                    self.exit()
+            while True:
+                try:
+                    # TODO: get range parameters and adjust graphs according to those
+                    self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
+                    self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
+                finally:
+                    self.errorCount += 1
+                    if self.errorCount > 10:
+                        pass
 
-    class AcquireThread(threading.Thread):
+    class AcquireThread(mp.Process):
         def __init__(self, ghandle, name, plotid, testflag=True):
-            threading.Thread.__init__(self)
+            mp.Process.__init__(self)
             self.id = plotid
             self.name = name
             self.errorCount = 0
@@ -128,20 +145,21 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             # TODO: Initialize communication with server
 
         def run(self):
-            try:
-                if self.testflag:
-                    self.ghandle.xdata[self.id] = range(60)
-                    self.ghandle.ydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
-                    self.ghandle.fxdata[self.id] = range(60)
-                    self.ghandle.fydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
-                else:
-                    pass
-                    # TODO: get data from server and place in arrays
-                time.sleep(0.001)  # TODO: Change 0.001 to the acquisition frequency?
-            finally:
-                self.errorCount += 1
-                if self.errorCount > 10:
-                    self.exit()
+            while True:
+                try:
+                    if self.testflag:
+                        self.ghandle.xdata[self.id] = range(60)
+                        self.ghandle.ydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
+                        self.ghandle.fxdata[self.id] = range(60)
+                        self.ghandle.fydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
+                    else:
+                        pass
+                        # TODO: get data from server and place in arrays
+                    time.sleep(0.001)  # TODO: Change 0.001 to the acquisition frequency?
+                finally:
+                    self.errorCount += 1
+                    if self.errorCount > 10:
+                        pass
 
 
 def main():
