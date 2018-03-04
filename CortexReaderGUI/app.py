@@ -60,18 +60,33 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         if self.btn_startstop.text() == "START":
             self.btn_startstop.setText("STOP")
             # Start acquisition
+            # if self.group_el1.isChecked():
+            #     self.threads.append(self.PlotThread(self, 'pl_el1', 0))
+            #     self.threads.append(self.AcquireThread(self, 'ac_el1', 0))
+            # if self.group_el2.isChecked():
+            #     self.threads.append(self.PlotThread(self, 'pl_el2', 1))
+            #     self.threads.append(self.AcquireThread(self, 'ac_el2', 1))
+            # if self.group_el3.isChecked():
+            #     self.threads.append(self.PlotThread(self, 'pl_el3', 2))
+            #     self.threads.append(self.AcquireThread(self, 'ac_el3', 2))
+            # if self.group_el4.isChecked():
+            #     self.threads.append(self.PlotThread(self, 'pl_el4', 3))
+            #     self.threads.append(self.AcquireThread(self, 'ac_el4', 3))
+            # self.threads[0].start()
+            # self.threads[1].start()
+            self.threads = []
             if self.group_el1.isChecked():
-                self.threads.append(self.PlotThread(self, 'pl_el1', 0))
-                self.threads.append(self.AcquireThread(self, 'ac_el1', 0))
+                self.threads.append(threading.Thread(target=self.runAcquisition, args=(0,)))
+                self.threads.append(threading.Thread(target=self.runPlot, args=(0,)))
             if self.group_el2.isChecked():
-                self.threads.append(self.PlotThread(self, 'pl_el2', 1))
-                self.threads.append(self.AcquireThread(self, 'ac_el2', 1))
+                self.threads.append(threading.Thread(target=self.runAcquisition, args=(1,)))
+                self.threads.append(threading.Thread(target=self.runPlot, args=(1,)))
             if self.group_el3.isChecked():
-                self.threads.append(self.PlotThread(self, 'pl_el3', 2))
-                self.threads.append(self.AcquireThread(self, 'ac_el3', 2))
+                self.threads.append(threading.Thread(target=self.runAcquisition, args=(2,)))
+                self.threads.append(threading.Thread(target=self.runPlot, args=(2,)))
             if self.group_el4.isChecked():
-                self.threads.append(self.PlotThread(self, 'pl_el4', 3))
-                self.threads.append(self.AcquireThread(self, 'ac_el4', 3))
+                self.threads.append(threading.Thread(target=self.runAcquisition, args=(3,)))
+                self.threads.append(threading.Thread(target=self.runPlot, args=(3,)))
             for t in self.threads:
                 t.start()
 
@@ -114,6 +129,22 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.curve[pltnumber].setData(xdata, ydata)
     """
 
+    def runPlot(self, plotid):
+        while self.btn_startstop.text() == "STOP":
+            QtWidgets.QApplication.processEvents()
+            if (len(self.xdata[plotid]) != 0) & (len(self.fxdata[plotid]) != 0) & (len(self.xdata[plotid]) == len(self.ydata[plotid])) & (len(self.fxdata[plotid]) == len(self.fydata[plotid])):
+                self.curve[plotid].setData(self.xdata[plotid], self.ydata[plotid])
+                self.curve[plotid+4].setData(self.fxdata[plotid], self.fydata[plotid])
+
+    def runAcquisition(self, plotid, testflag=True):
+        while self.btn_startstop.text() == "STOP":
+            QtWidgets.QApplication.processEvents()
+            if testflag:
+                self.xdata[plotid] = range(60)
+                self.ydata[plotid] = np.random.random(len(self.xdata[plotid]))
+                self.fxdata[plotid] = range(60)
+                self.fydata[plotid] = np.random.random(len(self.xdata[plotid]))
+
     # CUSTOM CLASSES #############
     class PlotThread(mp.Process):
         def __init__(self, ghandle, name, plotid):
@@ -126,9 +157,10 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         def run(self):
             while True:
                 try:
-                    # TODO: get range parameters and adjust graphs according to those
-                    self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
-                    self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
+                    if (len(self.ghandle.xdata[self.id]) != 0) & (len(self.ghandle.fxdata[self.id]) != 0):
+                        # TODO: get range parameters and adjust graphs according to those
+                        self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
+                        self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
                 finally:
                     self.errorCount += 1
                     if self.errorCount > 10:
