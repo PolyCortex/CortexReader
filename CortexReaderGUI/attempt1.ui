@@ -550,114 +550,11 @@
      </layout>
     </widget>
    </widget>
-   <widget class="QGroupBox" name="group_acquisitioninfo">
-    <property name="geometry">
-     <rect>
-      <x>689</x>
-      <y>20</y>
-      <width>491</width>
-      <height>141</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Acquisition Information</string>
-    </property>
-   </widget>
-   <widget class="QGroupBox" name="group_settings">
-    <property name="geometry">
-     <rect>
-      <x>330</x>
-      <y>20</y>
-      <width>181</width>
-      <height>141</height>
-     </rect>
-    </property>
-    <property name="title">
-     <string>Settings</string>
-    </property>
-    <widget class="QPushButton" name="pushButton_3">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>112</y>
-       <width>161</width>
-       <height>21</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Save Settings</string>
-     </property>
-    </widget>
-    <widget class="QPushButton" name="btn_setdisplay">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>20</y>
-       <width>161</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Display Settings</string>
-     </property>
-     <attribute name="buttonGroup">
-      <string notr="true">buttonGroup</string>
-     </attribute>
-    </widget>
-    <widget class="QPushButton" name="btn_setcustom">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>40</y>
-       <width>161</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Custom Mode Settings</string>
-     </property>
-     <attribute name="buttonGroup">
-      <string notr="true">buttonGroup</string>
-     </attribute>
-    </widget>
-    <widget class="QPushButton" name="btn_setprocessing">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>80</y>
-       <width>161</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Signal Processing Settings</string>
-     </property>
-     <attribute name="buttonGroup">
-      <string notr="true">buttonGroup</string>
-     </attribute>
-    </widget>
-    <widget class="QPushButton" name="btn_setacquisition">
-     <property name="geometry">
-      <rect>
-       <x>10</x>
-       <y>60</y>
-       <width>161</width>
-       <height>23</height>
-      </rect>
-     </property>
-     <property name="text">
-      <string>Acquisition Settings</string>
-     </property>
-     <attribute name="buttonGroup">
-      <string notr="true">buttonGroup</string>
-     </attribute>
-    </widget>
-   </widget>
    <widget class="QLabel" name="lab_logo">
     <property name="geometry">
      <rect>
-      <x>520</x>
-      <y>10</y>
+      <x>1020</x>
+      <y>0</y>
       <width>161</width>
       <height>171</height>
      </rect>
@@ -665,6 +562,44 @@
     <property name="text">
      <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;img src=&quot;:/img/logo_plein.png&quot;/&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
     </property>
+   </widget>
+   <widget class="QTabWidget" name="group_tab">
+    <property name="geometry">
+     <rect>
+      <x>330</x>
+      <y>10</y>
+      <width>691</width>
+      <height>151</height>
+     </rect>
+    </property>
+    <property name="currentIndex">
+     <number>2</number>
+    </property>
+    <widget class="QWidget" name="tab_set">
+     <attribute name="title">
+      <string>Display settings</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_cmode">
+     <attribute name="title">
+      <string>Custom Mode settings</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_acq">
+     <attribute name="title">
+      <string>Acquisition settings</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_sp">
+     <attribute name="title">
+      <string>Signal Processing settings</string>
+     </attribute>
+    </widget>
+    <widget class="QWidget" name="tab_info">
+     <attribute name="title">
+      <string>Acquisition Information</string>
+     </attribute>
+    </widget>
    </widget>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -693,11 +628,6 @@
   <tabstop>rbcustom_el1</tabstop>
   <tabstop>group_el2</tabstop>
   <tabstop>group_el3</tabstop>
-  <tabstop>pushButton_3</tabstop>
-  <tabstop>btn_setdisplay</tabstop>
-  <tabstop>btn_setcustom</tabstop>
-  <tabstop>btn_setacquisition</tabstop>
-  <tabstop>btn_setprocessing</tabstop>
   <tabstop>rbnormal_el2</tabstop>
   <tabstop>rbalpha_el2</tabstop>
   <tabstop>rbcustom_el2</tabstop>
