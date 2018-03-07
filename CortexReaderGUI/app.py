@@ -1,4 +1,5 @@
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtCore import QThread, pyqtSignal, QObject, pyqtSlot
 import sys
 import gui
 import numpy as np
@@ -23,6 +24,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.fxdata = [[], [], [], []]
         self.fydata = [[], [], [], []]
         self.threads = []
+        self.threadpool = QtCore.QThreadPool()
 
         # Associate callbacks
         self.btn_startstop.clicked.connect(self.startstop)
@@ -31,7 +33,7 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         # Initialize graphs
         self.timers = []
         self.plotlist = [self.tsgraph_el1, self.tsgraph_el2, self.tsgraph_el3, self.tsgraph_el4,
-                    self.fsgraph_el1, self.fsgraph_el2, self.fsgraph_el3, self.fsgraph_el4]
+                         self.fsgraph_el1, self.fsgraph_el2, self.fsgraph_el3, self.fsgraph_el4]
         plottitles = ['Time Series - Electrode 1', 'Time Series - Electrode 2', 'Time Series - Electrode 3',
                       'Time Series - Electrode 4', 'Frequency Spectrum - Electrode 1',
                       'Frequency Spectrum - Electrode 2', 'Frequency Spectrum - Electrode 3',
@@ -54,47 +56,37 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             self.curve.append(g.plotItem.plot())
             self.curve[itr].setPen(plotlinecolors[itr])
 
-        # Display window
 
     def startstop(self):
         if self.btn_startstop.text() == "START":
             self.btn_startstop.setText("STOP")
             # Start acquisition
-            # if self.group_el1.isChecked():
-            #     self.threads.append(self.PlotThread(self, 'pl_el1', 0))
-            #     self.threads.append(self.AcquireThread(self, 'ac_el1', 0))
-            # if self.group_el2.isChecked():
-            #     self.threads.append(self.PlotThread(self, 'pl_el2', 1))
-            #     self.threads.append(self.AcquireThread(self, 'ac_el2', 1))
-            # if self.group_el3.isChecked():
-            #     self.threads.append(self.PlotThread(self, 'pl_el3', 2))
-            #     self.threads.append(self.AcquireThread(self, 'ac_el3', 2))
-            # if self.group_el4.isChecked():
-            #     self.threads.append(self.PlotThread(self, 'pl_el4', 3))
-            #     self.threads.append(self.AcquireThread(self, 'ac_el4', 3))
-            # self.threads[0].start()
-            # self.threads[1].start()
             self.threads = []
             if self.group_el1.isChecked():
-                self.threads.append(threading.Thread(target=self.runAcquisition, args=(0,)))
-                self.threads.append(threading.Thread(target=self.runPlot, args=(0,)))
+                self.threads.append(AcquisitionThread(0))
+                self.threads[-1].signals.data.connect(self.update_data)
+                # self.threads.append(PlottingThread(self.update_plot, 0))
             if self.group_el2.isChecked():
-                self.threads.append(threading.Thread(target=self.runAcquisition, args=(1,)))
-                self.threads.append(threading.Thread(target=self.runPlot, args=(1,)))
+                self.threads.append(AcquisitionThread(1))
+                self.threads[-1].signals.data.connect(self.update_data)
+                # self.threads.append(PlottingThread(self.update_plot, 1))
             if self.group_el3.isChecked():
-                self.threads.append(threading.Thread(target=self.runAcquisition, args=(2,)))
-                self.threads.append(threading.Thread(target=self.runPlot, args=(2,)))
+                self.threads.append(AcquisitionThread(2))
+                self.threads[-1].signals.data.connect(self.update_data)
+                # self.threads.append(PlottingThread(self.update_plot, 2))
             if self.group_el4.isChecked():
-                self.threads.append(threading.Thread(target=self.runAcquisition, args=(3,)))
-                self.threads.append(threading.Thread(target=self.runPlot, args=(3,)))
+                self.threads.append(AcquisitionThread(3))
+                self.threads[-1].signals.data.connect(self.update_data)
+                # self.threads.append(PlottingThread(self.update_plot, 3))
             for t in self.threads:
-                t.start()
+                self.threadpool.start(t)
+                t.start_button()
 
         elif self.btn_startstop.text() == "STOP":
             self.btn_startstop.setText("START")
             # Stop acquisition
             for t in self.threads:
-                pass
+                t.stop_button()
 
     # Callback function of the "Browse" button, which is used to ask the user where to save data after acquisition.
     def browse(self):
@@ -102,96 +94,95 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.has_savepath = True
         self.ed_saveloc.setText(self.savepath)
 
-    """
-    # _TEST FUNCTION_
-    def test_testplot(self):
-            self.timers = QtCore.QTimer()
-            self.timers.timeout.connect(self.test_updatedata)
-            self.timers.start(50)
+    # Emit functions (launched when emitting from the QThread objects
+    def update_data(self, data):
+        plot_id = data[0]
+        self.xdata[plot_id] = data[1]
+        self.ydata[plot_id] = data[2]
+        self.fxdata[plot_id] = data[3]
+        self.fydata[plot_id] = data[4]
+        self.update_plot(plot_id)
 
-    # _TEST FUNCTION_
-    def test_updatedata(self):
-        for i in range(len(self.curve)):
-            x = range(60)
-            y = np.random.random(len(x))
-            self.updateplot(i, x, y)
-    
-    # Function which updates plot with the data contained in xdata (x-axis) and ydata (y-axis)
-    def updateplot(self, pltnumber, xdata, ydata):
-        # Function to update the plot pltnumber in the gui using with xdata and ydata, both arrays
-        # pltnumber = 0 to 7 (0 = first left, 7 = last right in the layout)
-        assert len(xdata) == len(ydata), "xdata (%r) and ydata (%r) aren't the same length" % (len(xdata), len(ydata))
+    def update_plot(self, plot_id):
+        # TODO : Adjust range from parameters in GUI
+        if self.data_valid(plot_id):
+            self.curve[plot_id].setData(self.xdata[plot_id], self.ydata[plot_id])
+            self.curve[plot_id+4].setData(self.fxdata[plot_id], self.fydata[plot_id])
 
-        # Get range parameters
-        # TODO
+    # Validation functions
+    def data_valid(self, plot_id):
+        if len(self.xdata[plot_id]) != len(self.ydata[plot_id]):
+            return False
+        if len(self.fxdata[plot_id]) != len(self.fydata[plot_id]):
+            return False
+        # TODO : Add other validation? (data type, etc.)
+        return True
 
-        # Plot data
-        self.curve[pltnumber].setData(xdata, ydata)
-    """
 
-    def runPlot(self, plotid):
-        while self.btn_startstop.text() == "STOP":
-            QtWidgets.QApplication.processEvents()
-            if (len(self.xdata[plotid]) != 0) & (len(self.fxdata[plotid]) != 0) & (len(self.xdata[plotid]) == len(self.ydata[plotid])) & (len(self.fxdata[plotid]) == len(self.fydata[plotid])):
-                self.curve[plotid].setData(self.xdata[plotid], self.ydata[plotid])
-                self.curve[plotid+4].setData(self.fxdata[plotid], self.fydata[plotid])
+# class PlottingSignals(QObject):
+#     data = pyqtSignal(object)  # [[xdata],[ydata],[fxdata],[fydata]]
+#     plot_id = pyqtSignal(int)
+#
+#
+# class PlottingThread(QtCore.QRunnable):
+#     def __init__(self, fn, plot_id, *args, **kwargs):
+#         super(PlottingThread, self).__init__()
+#         # QThread.__init__(self)
+#         self.fn = fn
+#         self.plot_id = plot_id
+#         self.args = args
+#         self.kwargs = kwargs
+#         self.started = False
+#         self.signals = PlottingSignals()
+#
+#     # def __del__(self):
+#     #     self.wait()
+#
+#     @pyqtSlot()
+#     def run(self):
+#         while self.started:
+#             self.fn(self.plot_id)
+#             #time.sleep(0.2)
+#
+#     def start_button(self):
+#         self.started = True
+#
+#     def stop_button(self):
+#         self.started = False
 
-    def runAcquisition(self, plotid, testflag=True):
-        while self.btn_startstop.text() == "STOP":
-            QtWidgets.QApplication.processEvents()
-            if testflag:
-                self.xdata[plotid] = range(60)
-                self.ydata[plotid] = np.random.random(len(self.xdata[plotid]))
-                self.fxdata[plotid] = range(60)
-                self.fydata[plotid] = np.random.random(len(self.xdata[plotid]))
 
-    # CUSTOM CLASSES #############
-    class PlotThread(mp.Process):
-        def __init__(self, ghandle, name, plotid):
-            mp.Process.__init__(self)
-            self.id = plotid
-            self.name = name
-            self.errorCount = 0
-            self.ghandle = ghandle
+class AcquisitionSignals(QObject):
+    data = pyqtSignal(object)  # [plot_id, [xdata],[ydata],[fxdata],[fydata]]
 
-        def run(self):
-            while True:
-                try:
-                    if (len(self.ghandle.xdata[self.id]) != 0) & (len(self.ghandle.fxdata[self.id]) != 0):
-                        # TODO: get range parameters and adjust graphs according to those
-                        self.ghandle.curve[self.id].setData(self.ghandle.xdata[self.id], self.ghandle.ydata[self.id])
-                        self.ghandle.curve[self.id+4].setData(self.ghandle.fxdata[self.id], self.ghandle.fydata[self.id])
-                finally:
-                    self.errorCount += 1
-                    if self.errorCount > 10:
-                        pass
 
-    class AcquireThread(mp.Process):
-        def __init__(self, ghandle, name, plotid, testflag=True):
-            mp.Process.__init__(self)
-            self.id = plotid
-            self.name = name
-            self.errorCount = 0
-            self.ghandle = ghandle
-            self.testflag = testflag
-            # TODO: Initialize communication with server
+class AcquisitionThread(QtCore.QRunnable):
+    def __init__(self, plot_id, *args, **kwargs):
+        super(AcquisitionThread, self).__init__()
+        self.setAutoDelete(True)
+        # QThread.__init__(self)
+        self.plot_id = plot_id
+        self.args = args
+        self.kwargs = kwargs
+        self.started = False
+        self.signals = AcquisitionSignals()
 
-        def run(self):
-            while True:
-                try:
-                    if self.testflag:
-                        self.ghandle.xdata[self.id] = range(60)
-                        self.ghandle.ydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
-                        self.ghandle.fxdata[self.id] = range(60)
-                        self.ghandle.fydata[self.id] = np.random.random(len(self.ghandle.xdata[self.id]))
-                    else:
-                        pass
-                        # TODO: get data from server and place in arrays
-                    time.sleep(0.001)  # TODO: Change 0.001 to the acquisition frequency?
-                finally:
-                    self.errorCount += 1
-                    if self.errorCount > 10:
-                        pass
+
+    @pyqtSlot()
+    def run(self):
+        while self.started:
+            # TODO : Acquisition from server + Add data properly (push according to buffer size)
+            xdata = range(60)
+            ydata = np.random.random(len(xdata))
+            fxdata = range(60)
+            fydata = np.random.random(len(fxdata))
+            self.signals.data.emit([self.plot_id, xdata, ydata, fxdata, fydata])
+            time.sleep(0.1)
+
+    def start_button(self):
+        self.started = True
+
+    def stop_button(self):
+        self.started = False
 
 
 def main():
