@@ -7,6 +7,11 @@ import pyqtgraph as pg
 import time
 import threading
 import multiprocessing as mp
+import Adafruit_ADS1x15
+
+adc = Adafruit_ADS1x15.ADS1115()
+GAIN=1
+freq=200 #hz
 
 
 class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
@@ -15,6 +20,8 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         # Initialize
         super(App, self).__init__(parent)
         self.setupUi(self)
+        
+        
 
         # Initialize variable
         self.savepath = ""
@@ -56,37 +63,42 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             self.curve.append(g.plotItem.plot())
             self.curve[itr].setPen(plotlinecolors[itr])
 
+        self.getADC_=getADC()
+        self.getADC_.sendData.connect(self.update_plot)
+
 
     def startstop(self):
         if self.btn_startstop.text() == "START":
             self.btn_startstop.setText("STOP")
-            # Start acquisition
-            self.threads = []
-            if self.group_el1.isChecked():
-                self.threads.append(AcquisitionThread(0))
-                self.threads[-1].signals.data.connect(self.update_data)
-                # self.threads.append(PlottingThread(self.update_plot, 0))
-            if self.group_el2.isChecked():
-                self.threads.append(AcquisitionThread(1))
-                self.threads[-1].signals.data.connect(self.update_data)
-                # self.threads.append(PlottingThread(self.update_plot, 1))
-            if self.group_el3.isChecked():
-                self.threads.append(AcquisitionThread(2))
-                self.threads[-1].signals.data.connect(self.update_data)
-                # self.threads.append(PlottingThread(self.update_plot, 2))
-            if self.group_el4.isChecked():
-                self.threads.append(AcquisitionThread(3))
-                self.threads[-1].signals.data.connect(self.update_data)
-                # self.threads.append(PlottingThread(self.update_plot, 3))
-            for t in self.threads:
-                self.threadpool.start(t)
-                t.start_button()
+            self.getADC_.startButton()
+#            # Start acquisition
+#            self.threads = []
+#            if self.group_el1.isChecked():
+#                self.threads.append(AcquisitionThread(0))
+#                self.threads[-1].signals.data.connect(self.update_data)
+#                # self.threads.append(PlottingThread(self.update_plot, 0))
+#            if self.group_el2.isChecked():
+#                self.threads.append(AcquisitionThread(1))
+#                self.threads[-1].signals.data.connect(self.update_data)
+#                # self.threads.append(PlottingThread(self.update_plot, 1))
+#            if self.group_el3.isChecked():
+#                self.threads.append(AcquisitionThread(2))
+#                self.threads[-1].signals.data.connect(self.update_data)
+#                # self.threads.append(PlottingThread(self.update_plot, 2))
+#            if self.group_el4.isChecked():
+#                self.threads.append(AcquisitionThread(3))
+#                self.threads[-1].signals.data.connect(self.update_data)
+#                # self.threads.append(PlottingThread(self.update_plot, 3))
+#            for t in self.threads:
+#                self.threadpool.start(t)
+#                t.start_button()
 
         elif self.btn_startstop.text() == "STOP":
             self.btn_startstop.setText("START")
             # Stop acquisition
-            for t in self.threads:
-                t.stop_button()
+            self.getADC_.stopButton()
+#            for t in self.threads:
+#                t.stop_button()
 
     # Callback function of the "Browse" button, which is used to ask the user where to save data after acquisition.
     def browse(self):
@@ -103,11 +115,12 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         self.fydata[plot_id] = data[4]
         self.update_plot(plot_id)
 
-    def update_plot(self, plot_id):
+    def update_plot(self, data_t,data_f,plot_t,plot_f):
         # TODO : Adjust range from parameters in GUI
-        if self.data_valid(plot_id):
-            self.curve[plot_id].setData(self.xdata[plot_id], self.ydata[plot_id])
-            self.curve[plot_id+4].setData(self.fxdata[plot_id], self.fydata[plot_id])
+        print('here')
+        self.curve[plot_t].setData(list(range(len(data_t))), data_t)
+
+        self.curve[plot_f].setData(list(range(len(data_f))), data_f)
 
     # Validation functions
     def data_valid(self, plot_id):
@@ -119,70 +132,92 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
         return True
 
 
-# class PlottingSignals(QObject):
-#     data = pyqtSignal(object)  # [[xdata],[ydata],[fxdata],[fydata]]
-#     plot_id = pyqtSignal(int)
-#
-#
-# class PlottingThread(QtCore.QRunnable):
-#     def __init__(self, fn, plot_id, *args, **kwargs):
-#         super(PlottingThread, self).__init__()
-#         # QThread.__init__(self)
-#         self.fn = fn
-#         self.plot_id = plot_id
-#         self.args = args
-#         self.kwargs = kwargs
-#         self.started = False
-#         self.signals = PlottingSignals()
-#
-#     # def __del__(self):
-#     #     self.wait()
-#
-#     @pyqtSlot()
-#     def run(self):
-#         while self.started:
-#             self.fn(self.plot_id)
-#             #time.sleep(0.2)
-#
-#     def start_button(self):
-#         self.started = True
-#
-#     def stop_button(self):
-#         self.started = False
 
 
-class AcquisitionSignals(QObject):
-    data = pyqtSignal(object)  # [plot_id, [xdata],[ydata],[fxdata],[fydata]]
+### JONNNY TAKES OVER
 
+class getADC(QThread):
+    sendData=pyqtSignal(object,object,object,object)
+    # emit signal once you want to plot something, that should pass arguments to a function that will just do plot when triggered
+        
+    def __init__(self):
+        QThread.__init__(self)
+        
+        self.startButton_=False
+        self.dataTreatment_E1=dataTreatment(0,4)
+        self.dataTreatment_E1.sendTreatedData.connect(self.update_plot)
+        self.dataTreatment_E2=dataTreatment(1,5)
+        self.dataTreatment_E2.sendTreatedData.connect(self.update_plot)
+        self.dataTreatment_E3=dataTreatment(2,6)
+        self.dataTreatment_E3.sendTreatedData.connect(self.update_plot)
+        self.dataTreatment_E4=dataTreatment(3,7)
+        self.dataTreatment_E4.sendTreatedData.connect(self.update_plot)
+        
+    def __del__(self):
+        self.wait()
+    def startButton(self):
+        self.startButton_=True
+        self.start()
+        
+    def update_plot(self,data_t, data_f,plot_t,plot_f):
+        self.sendData.emit(data_t,data_f,plot_t, plot_f)    
+    def stopButton(self):
+        self.startButton_=False
 
-class AcquisitionThread(QtCore.QRunnable):
-    def __init__(self, plot_id, *args, **kwargs):
-        super(AcquisitionThread, self).__init__()
-        self.setAutoDelete(True)
-        # QThread.__init__(self)
-        self.plot_id = plot_id
-        self.args = args
-        self.kwargs = kwargs
-        self.started = False
-        self.signals = AcquisitionSignals()
+    def run(self): #### when you wanna start this thread do nameOfThread.start()
+        ## faire des update ici, et emettre tes signaux icu
+        global adc, GAIN, freq
+        data=np.zeros((freq,4))
+        count=0
+        while self.startButton_:
+            for i in range(4):
+        # Read the specified ADC channel using the previously set gain value.
+#                data[count,i] = adc.read_adc(i, gain=GAIN)
+                data[count,i]=np.random.random()
+            count=count+1
+            if count==freq:
+                self.dataTreatment_E1.treatData(data[:,0])
+                self.dataTreatment_E2.treatData(data[:,1])
+                self.dataTreatment_E3.treatData(data[:,2])
+                self.dataTreatment_E4.treatData(data[:,3])
+                data=np.zeros((freq,4))
+                count=0
 
+        # Note you can also pass in an optional data_rate parameter that controls
+        # the ADC conversion time (in samples/second). Each chip has a different
+        # set of allowed data rate values, see datasheet Table 9 config register
+        # DR bit values.
+        #values[i] = adc.read_adc(i, gain=GAIN, data_rate=128)
+        # Each value will be a 12 or 16 bit signed integer value depending on the
+        # ADC (ADS1015 = 12-bit, ADS1115 = 16-bit).
+#         Print the ADC values.
+#            print('| {0:>6} | {1:>6} | {2:>6} | {3:>6} |'.format(*values))
+    # Pause for half a second.
+            time.sleep(1/freq)
 
-    @pyqtSlot()
-    def run(self):
-        while self.started:
-            # TODO : Acquisition from server + Add data properly (push according to buffer size)
-            xdata = range(60)
-            ydata = np.random.random(len(xdata))
-            fxdata = range(60)
-            fydata = np.random.random(len(fxdata))
-            self.signals.data.emit([self.plot_id, xdata, ydata, fxdata, fydata])
-            time.sleep(0.1)
+                
+class dataTreatment(QThread):
+    sendTreatedData=pyqtSignal(object,object,object,object)
+    # emit signal once you want to plot something, that should pass arguments to a function that will just do plot when triggered
+        
+    def __init__(self,plot_t,plot_f):
+        QThread.__init__(self)
+        self.plot_t=plot_t
+        self.plot_f=plot_f
+        
+    def __del__(self):
+        self.wait()
+        
+    def treatData(self,data):
+        self.data=data
+        self.start()
 
-    def start_button(self):
-        self.started = True
-
-    def stop_button(self):
-        self.started = False
+    def run(self): #### when you wanna start this thread do nameOfThread.start()
+        # data treatment
+        
+        #send data
+        self.sendTreatedData.emit(self.data,self.data,self.plot_t,self.plot_f)
+        
 
 
 def main():
