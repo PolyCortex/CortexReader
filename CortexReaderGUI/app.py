@@ -11,17 +11,18 @@ import Adafruit_ADS1x15
 
 adc = Adafruit_ADS1x15.ADS1115()
 GAIN=1
-freq=200 #hz
+freq=860/4 #hz
 
 
 class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
     # This function is performed everytime the application is launched. It initializes the GUI and all of its parameters
     def __init__(self, parent=None):
         # Initialize
+        global freq
         super(App, self).__init__(parent)
         self.setupUi(self)
-        
-        
+        self.x_f=np.linspace(0,freq/5,int(np.round(freq/2)))
+        self.x_t=np.linspace(0,2.5,int(freq))
 
         # Initialize variable
         self.savepath = ""
@@ -51,13 +52,13 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
             g = self.plotlist[itr]
             g.plotItem.setTitle(plottitles[itr])
             if itr < 4:
-                g.plotItem.setLabel('left','Amplitude','?')
+                g.plotItem.setLabel('left','Amplitude','V')
                 g.plotItem.setLabel('bottom','Time','s')
-                g.plotItem.getViewBox().setXRange(0, 10)
+#                g.plotItem.getViewBox().setXRange(0, 1)
             else:
-                g.plotItem.setLabel('left','Amplitude','?')
+                g.plotItem.setLabel('left','Amplitude','dB')
                 g.plotItem.setLabel('bottom','Frequency','Hz')
-                g.plotItem.getViewBox().setXRange(0, 60)
+#                g.plotItem.getViewBox().setXRange(0, 60)
             g.plotItem.getViewBox().setMouseEnabled(False)
             g.plotItem.getViewBox().setMenuEnabled(False)
             self.curve.append(g.plotItem.plot())
@@ -117,10 +118,8 @@ class App(QtWidgets.QMainWindow, gui.Ui_MainWindow):
 
     def update_plot(self, data_t,data_f,plot_t,plot_f):
         # TODO : Adjust range from parameters in GUI
-        print('here')
-        self.curve[plot_t].setData(list(range(len(data_t))), data_t)
-
-        self.curve[plot_f].setData(list(range(len(data_f))), data_f)
+        self.curve[plot_t].setData(self.x_t, data_t)
+        self.curve[plot_f].setData(self.x_f, data_f.real)
 
     # Validation functions
     def data_valid(self, plot_id):
@@ -167,20 +166,20 @@ class getADC(QThread):
     def run(self): #### when you wanna start this thread do nameOfThread.start()
         ## faire des update ici, et emettre tes signaux icu
         global adc, GAIN, freq
-        data=np.zeros((freq,4))
+        data=np.zeros((int(freq),4))
         count=0
         while self.startButton_:
             for i in range(4):
         # Read the specified ADC channel using the previously set gain value.
-#                data[count,i] = adc.read_adc(i, gain=GAIN)
-                data[count,i]=np.random.random()
+                data[count,i] = adc.read_adc(i, gain=GAIN, data_rate=int(freq*4))
+#                data[count,i]=np.random.random()
             count=count+1
-            if count==freq:
+            if count==int(freq):
                 self.dataTreatment_E1.treatData(data[:,0])
                 self.dataTreatment_E2.treatData(data[:,1])
                 self.dataTreatment_E3.treatData(data[:,2])
                 self.dataTreatment_E4.treatData(data[:,3])
-                data=np.zeros((freq,4))
+                data=np.zeros((int(freq),4))
                 count=0
 
         # Note you can also pass in an optional data_rate parameter that controls
@@ -193,7 +192,7 @@ class getADC(QThread):
 #         Print the ADC values.
 #            print('| {0:>6} | {1:>6} | {2:>6} | {3:>6} |'.format(*values))
     # Pause for half a second.
-            time.sleep(1/freq)
+#            time.sleep(1/freq)
 
                 
 class dataTreatment(QThread):
@@ -209,14 +208,14 @@ class dataTreatment(QThread):
         self.wait()
         
     def treatData(self,data):
-        self.data=data
+        self.data=(1000/18139)*(4.096/32767)*data
         self.start()
 
     def run(self): #### when you wanna start this thread do nameOfThread.start()
         # data treatment
-        
+        y_f=20*np.log10(np.abs(np.fft.rfft(self.data)))
         #send data
-        self.sendTreatedData.emit(self.data,self.data,self.plot_t,self.plot_f)
+        self.sendTreatedData.emit(self.data,y_f,self.plot_t,self.plot_f)
         
 
 
